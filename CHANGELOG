@@ -1,4 +1,5 @@
 1.3.0
+- Fixed bug with negating "some"-consitions
 - support generic relations (erthalion)
 - support filtering by time equality
 - optimizations for python 3
