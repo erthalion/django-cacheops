@@ -51,6 +51,14 @@ except AttributeError:
 
 redis_client = (SafeRedis if DEGRADE_ON_FAILURE else redis.StrictRedis)(**redis_conf)
 
+def handle_transactions(pipeline_func):
+    @wraps(pipeline_func)
+    def _inner(*args, **kwargs):
+        kwargs['transaction'] = False
+        return pipeline_func(*args, **kwargs)
+    return _inner
+
+redis_client.pipeline = handle_transactions(redis_client.pipeline)
 
 model_profiles = {}
 
