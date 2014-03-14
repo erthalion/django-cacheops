@@ -54,7 +54,10 @@ redis_client = (SafeRedis if DEGRADE_ON_FAILURE else redis.StrictRedis)(**redis_
 def handle_transactions(pipeline_func):
     @wraps(pipeline_func)
     def _inner(*args, **kwargs):
-        kwargs['transaction'] = False
+        if len(args) > 1:
+            args = tuple((False, args[1]))
+        else:
+            kwargs['transaction'] = False
         return pipeline_func(*args, **kwargs)
     return _inner
 
