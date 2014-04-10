@@ -41,6 +41,7 @@ def handle_connection_failure(func):
 
 class SafeRedis(redis.StrictRedis):
     get = handle_connection_failure(redis.StrictRedis.get)
+    set = handle_connection_failure(redis.StrictRedis.set)
     delete = handle_connection_failure(redis.StrictRedis.delete)
 
 
