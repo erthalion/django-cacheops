@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from copy import deepcopy
 from functools import wraps
 import warnings
@@ -6,6 +8,8 @@ import redis
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
+
+logger = logging.getLogger('cache')
 
 
 profile_defaults = {
@@ -35,6 +39,7 @@ def handle_connection_failure(func):
         try:
             return func(*args, **kwargs)
         except redis.ConnectionError as e:
+            logger.debug("The cacheops cache is unreachable! Error: %s" % e, RuntimeWarning)
             warnings.warn("The cacheops cache is unreachable! Error: %s" % e, RuntimeWarning)
 
     return _inner

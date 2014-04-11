@@ -5,11 +5,15 @@ except ImportError:
     import pickle
 from functools import wraps
 import os, time
+import logging
 
 from django.conf import settings
 
 from cacheops import cross
 from cacheops.conf import redis_client
+
+logger = logging.getLogger('cache')
+
 
 
 __all__ = ('cache', 'cached', 'file_cache', 'CacheMiss')
@@ -72,10 +76,13 @@ class RedisCache(BaseCache):
     def get(self, cache_key):
         data = self.conn.get(cache_key)
         if data is None:
+            logger.debug('[REDIS]: Get data with cache_key: %s cause miss' % cache_key)
             raise CacheMiss
+        logger.debug('[REDIS]: Get data: %s, with cache_key: %s cause miss' % (pickle.loads(data), cache_key))
         return pickle.loads(data)
 
     def set(self, cache_key, data, timeout=None):
+        logger.debug('[REDIS]: Set data: %s, with cache_key: %s cause miss' % (data, cache_key))
         pickled_data = pickle.dumps(data, -1)
         if timeout is not None:
             self.conn.setex(cache_key, timeout, pickled_data)
@@ -83,6 +90,7 @@ class RedisCache(BaseCache):
             self.conn.set(cache_key, pickled_data)
 
     def delete(self, cache_key):
+        logger.debug('[REDIS]: Delete data with cache_key: %s' % cache_key)
         self.conn.delete(cache_key)
 
 cache = RedisCache(redis_client)

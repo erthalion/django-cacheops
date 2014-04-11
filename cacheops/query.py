@@ -5,6 +5,7 @@ try:
 except ImportError:
     import pickle
 from functools import wraps
+import logging
 
 from cacheops import cross
 from cacheops.cross import json
@@ -24,6 +25,8 @@ except ImportError:
 from cacheops.conf import model_profile, redis_client, handle_connection_failure
 from cacheops.utils import monkey_mix, dnf, conj_scheme, get_model_name, non_proxy, stamp_fields
 from cacheops.invalidation import cache_schemes, conj_cache_key, invalidate_obj, invalidate_model
+
+logger = logging.getLogger('cache')
 
 
 __all__ = ('cached_method', 'cached_as', 'install_cacheops')
@@ -51,6 +54,7 @@ def cache_thing(model, cache_key, data, cond_dnf=[[]], timeout=None):
 
     # Write data to cache
     pickled_data = pickle.dumps(data, -1)
+    logger.debug('Cache data: %s, for model: %s, with cache key: %s' % (data, model, cache_key))
     if timeout is not None:
         txn.setex(cache_key, timeout, pickled_data)
     else:
@@ -59,6 +63,7 @@ def cache_thing(model, cache_key, data, cond_dnf=[[]], timeout=None):
     # Add new cache_key to list of dependencies for every conjunction in dnf
     for conj in cond_dnf:
         conj_key = conj_cache_key(model, conj)
+        logger.debug('Add new conjuction for conj_key: %s, and cache_key: %s' % (conj_key, cache_key))
         txn.sadd(conj_key, cache_key)
         if timeout is not None:
             # Invalidator timeout should be larger than timeout of any key it references
@@ -103,8 +108,10 @@ def cached_as(sample, extra=None, timeout=None):
             #       I'm keeping them to cache view functions.
             cache_data = redis_client.get(cache_key)
             if cache_data is not None:
+                logger.debug('Get cache function with cache_key: %s, and data: %s' % (cache_key, pickle.loads(cache_data)))
                 return pickle.loads(cache_data)
 
+            logger.debug('Get cache function with cache_key: %s cause a cache miss' % cache_key)
             result = func(*args)
             queryset._cache_results(cache_key, result, timeout)
             return result
@@ -358,6 +365,7 @@ class QuerySetMixin(object):
         # TODO: do not cache empty queries in Django 1.6
         superiter = self._no_monkey.iterator
         cache_this = self._cacheprofile and 'fetch' in self._cacheops
+        logger.debug('Iterate over query: %s, with params: %s' % (self.query.sql_with_params()[0], self.query.sql_with_params()[1]))
 
         if cache_this:
             cache_key = self._cache_key()
@@ -366,11 +374,13 @@ class QuerySetMixin(object):
                 cache_data = redis_client.get(cache_key)
                 if cache_data is not None:
                     results = pickle.loads(cache_data)
+                    logger.debug('Get data from cache: %s, with cache_key: %s' % (results, cache_key))
                     for obj in results:
                         yield obj
                     raise StopIteration
 
         # Cache miss - fallback to overriden implementation
+        logger.debug('Get data from cache with cache_key: %s cause cache miss' % cache_key)
         results = []
         for obj in superiter(self):
             if cache_this:

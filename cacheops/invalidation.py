@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+import logging
+
 import six
 from cacheops.conf import redis_client, handle_connection_failure
 from cacheops.utils import get_model_name, non_proxy
+
+logger = logging.getLogger('cache')
 
 
 __all__ = ('invalidate_obj', 'invalidate_model', 'invalidate_all')
@@ -119,6 +123,7 @@ def invalidate_obj(obj):
     """
     Invalidates caches that can possibly be influenced by object
     """
+    logger.debug("Invalidate object: %s" % obj)
     model = non_proxy(obj.__class__)
 
     # Loading model schemes from local memory (or from redis)
@@ -129,6 +134,7 @@ def invalidate_obj(obj):
     for _ in (1, 2):
         # Create a list of invalidators from list of schemes and values of object fields
         conjs_keys = [conj_cache_key_from_scheme(model, scheme, obj) for scheme in schemes]
+        logger.debug("Conjs keys: %s" % conjs_keys)
 
         # Reading scheme version, cache_keys and deleting invalidators in
         # a single transaction.
@@ -148,6 +154,7 @@ def invalidate_obj(obj):
         #       The alternative WATCH-based optimistic locking proved to be pessimistic.
         version, cache_keys, _ = redis_client.transaction(_invalidate_conjs)
         if cache_keys:
+            logger.debug("Delete keys: %s" % cache_keys)
             redis_client.delete(*cache_keys)
 
         # OK, we invalidated all conjunctions we had in memory, but model schema
@@ -165,17 +172,21 @@ def invalidate_model(model):
     NOTE: This is a heavy artilery which uses redis KEYS request,
           which could be relatively slow on large datasets.
     """
+    logger.debug("Invalidate model: %s" % model)
     conjs_keys = redis_client.keys('conj:%s:*' % get_model_name(model))
     if isinstance(conjs_keys, str):
         conjs_keys = conjs_keys.split()
 
     if conjs_keys:
+        logger.debug("Conj keys: %s" % conjs_keys)
         cache_keys = redis_client.sunion(conjs_keys)
+        logger.debug("Delete keys: %s" % cache_keys)
         redis_client.delete(*(list(cache_keys) + conjs_keys))
 
     # BUG: a race bug here, ignoring since invalidate_model() is not for hot production use
     cache_schemes.clear(model)
 
 def invalidate_all():
+    logger.debug("Invalidate all")
     redis_client.flushdb()
     cache_schemes.clear_all()
