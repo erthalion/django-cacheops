@@ -365,7 +365,11 @@ class QuerySetMixin(object):
         # TODO: do not cache empty queries in Django 1.6
         superiter = self._no_monkey.iterator
         cache_this = self._cacheprofile and 'fetch' in self._cacheops
-        logger.debug('Iterate over query: %s, with params: %s' % (self.query.sql_with_params()[0], self.query.sql_with_params()[1]))
+        try:
+            logger.debug('Iterate over query: %s, with params: %s' %
+                         (self.query.sql_with_params()[0], self.query.sql_with_params()[1]))
+        except Exception as ex:
+            logger.debug('Get data from cache by query with ex: %s' % ex)
 
         if cache_this:
             cache_key = self._cache_key()
@@ -380,7 +384,12 @@ class QuerySetMixin(object):
                     raise StopIteration
 
         # Cache miss - fallback to overriden implementation
-        logger.debug('Get data from cache with cache_key: %s cause cache miss' % cache_key)
+        try:
+            logger.debug('Get data from cache with query: %s, with params: %s' %
+                        (self.query.sql_with_params()[0], self.query.sql_with_params()[1]))
+        except Exception as ex:
+            logger.debug('Get data from cache by query with ex: %s' % ex)
+
         results = []
         for obj in superiter(self):
             if cache_this:
