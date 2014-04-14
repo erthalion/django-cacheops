@@ -366,8 +366,10 @@ class QuerySetMixin(object):
         superiter = self._no_monkey.iterator
         cache_this = self._cacheprofile and 'fetch' in self._cacheops
         try:
-            logger.debug('Iterate over query: %s, with params: %s' %
-                         (self.query.sql_with_params()[0], self.query.sql_with_params()[1]))
+            logger.debug('Iterate over query: %s, with params: %s, and dict: %s' %
+                         (self.query.sql_with_params()[0],
+                          self.query.sql_with_params()[1],
+                          self.query.__dict__))
         except Exception as ex:
             logger.debug('Get data from cache by query with ex: %s' % ex)
 
