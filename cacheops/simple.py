@@ -78,11 +78,11 @@ class RedisCache(BaseCache):
         if data is None:
             logger.debug('[REDIS]: Get data with cache_key: %s cause miss' % cache_key)
             raise CacheMiss
-        logger.debug('[REDIS]: Get data: %s, with cache_key: %s cause miss' % (pickle.loads(data), cache_key))
+        logger.debug('[REDIS]: Get data: %s, with cache_key: %s' % (pickle.loads(data), cache_key))
         return pickle.loads(data)
 
     def set(self, cache_key, data, timeout=None):
-        logger.debug('[REDIS]: Set data: %s, with cache_key: %s cause miss' % (data, cache_key))
+        logger.debug('[REDIS]: Set data: %s, with cache_key: %s' % (data, cache_key))
         pickled_data = pickle.dumps(data, -1)
         if timeout is not None:
             self.conn.setex(cache_key, timeout, pickled_data)
