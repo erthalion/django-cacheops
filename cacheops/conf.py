@@ -39,8 +39,8 @@ def handle_connection_failure(func):
         try:
             return func(*args, **kwargs)
         except redis.ConnectionError as e:
-            logger.debug("The cacheops cache is unreachable! Error: %s" % e, RuntimeWarning)
-            warnings.warn("The cacheops cache is unreachable! Error: %s" % e, RuntimeWarning)
+            logger.debug("The cacheops cache is unreachable! Error: %s" % e)
+            warnings.warn("The cacheops cache is unreachable! Error: %s" % e)
 
     return _inner
 
