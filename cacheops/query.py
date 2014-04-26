@@ -473,10 +473,10 @@ class ManagerMixin(object):
         """
         Invokes invalidations for both old and new versions of saved object
         """
+        invalidate_obj(instance)
         old = _old_objs[sender].pop(instance.pk, None)
         if old:
             invalidate_obj(old)
-        invalidate_obj(instance)
 
         # Enabled cache_on_save makes us write saved object to cache.
         # Later it can be retrieved with .get(<cache_on_save_field>=<value>)
